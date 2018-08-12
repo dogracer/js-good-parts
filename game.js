@@ -3,7 +3,7 @@
         var canvas = document.getElementById(canvasId);
         var screen = canvas.getContext('2d');
         var gameSize = { x: canvas.width, y: canvas.height };
-        var framesPerSecond = 10;
+        //var framesPerSecond = 10;
         this.bodies = [new Player(this, gameSize)];
 
         var self = this;
@@ -31,6 +31,9 @@
             for (var i=0; i < this.bodies.length; i++) {
                 drawRect(screen, this.bodies[i]);
             }
+        },
+        addBody: function(body) {
+            this.bodies.push(body);
         }
     };
 
@@ -39,21 +42,38 @@
         this.size = { x: 15, y: 15 };
         this.center = { x: gameSize.x / 2, y: gameSize.y - this.size.x};
         this.keyboarder = new Keyboarder();
-    }
+    };
 
     Player.prototype = { 
         update: function(gameSize) {
             if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
                 this.center.x -= 2;
-                if (this.center.x < 0) {
-                    this.center.x = 0;
+                if (this.center.x < 0 + this.size.x/2) {
+                    this.center.x = this.size.x/2;
                 }
             } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
                 this.center.x += 2;
-                if (this.center.x > gameSize.x) {
-                    this.center.x = gameSize.x;
+                if (this.center.x > gameSize.x - this.size.x/2) {
+                    this.center.x = gameSize.x - this.size.x/2;
                 }
             }
+            if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
+                var bullet = new Bullet( { x: this.center.x, y: this.center.y - this.size.x /2}, {x: 0, y: -6});
+                this.game.addBody(bullet);
+            }
+        }
+    };
+
+    var Bullet = function(center, velocity) {
+        this.size = { x: 3, y: 3 };
+        this.center = center;
+        this.velocity = velocity;
+    };
+
+    Bullet.prototype = { 
+        update: function() {
+            this.center.x += this.velocity.x;
+            this.center.y += this.velocity.y;
         }
     };
 
@@ -72,7 +92,6 @@
             if (e.keyCode !== undefined) {
                 keyState[e.keyCode] = true;
             }
-            
         };
 
         //window.onkeyup didn't work so well for me, switched to document
