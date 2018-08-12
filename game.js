@@ -1,27 +1,36 @@
+// https://vimeo.com/105955605
 (function() {
     var Game = function(canvasId) {
         var canvas = document.getElementById(canvasId);
         var screen = canvas.getContext('2d');
         var gameSize = { x: canvas.width, y: canvas.height };
         //var framesPerSecond = 10;
-        this.bodies = [new Player(this, gameSize)];
+        this.bodies = createInvaders(this).concat(new Player(this, gameSize));
 
         var self = this;
-        
-        var tick = function() {
-            self.update(gameSize);
-            self.draw(screen, gameSize);
-            // uncomment these lines to slow down the animation
-            //setTimeout(function() {
-                requestAnimationFrame(tick);
-                //}, 1000 / framesPerSecond);
-        };
+        // laser sound from http://www.findsounds.com/ISAPI/search.dll?keywords=laser
+        loadSound("shoot.wav", function(shootSound) {
+            self.shootSound = shootSound;
+            var tick = function() {
+                self.update(gameSize);
+                self.draw(screen, gameSize);
+                // uncomment these lines to slow down the animation
+                //setTimeout(function() {
+                    requestAnimationFrame(tick);
+                    //}, 1000 / framesPerSecond);
+            };
 
-        tick();
+            tick();
+        });
     };
 
     Game.prototype = {
         update: function(gameSize) {
+            var bodies = this.bodies;
+            var notCollingWithAnything = function(b1) {
+                return bodies.filter(function(b2) { return colliding(b1, b2); }).length === 0;
+            };
+            this.bodies = this.bodies.filter(notCollingWithAnything);
             for (var i=0; i < this.bodies.length; i++) {
                 this.bodies[i].update(gameSize);
             }
@@ -34,6 +43,13 @@
         },
         addBody: function(body) {
             this.bodies.push(body);
+        },
+        invadersBelow: function(invader) {
+            return this.bodies.filter(function(b) {
+                return b instanceof Invader && 
+                    b.center.y > invader.center.y &&
+                    b.center.x - invader.center.x < invader.size.x;
+            }).length > 0;
         }
     };
 
@@ -60,9 +76,44 @@
             if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
                 var bullet = new Bullet( { x: this.center.x, y: this.center.y - this.size.x /2}, {x: 0, y: -6});
                 this.game.addBody(bullet);
+                this.game.shootSound.load();
+                this.game.shootSound.play();
             }
         }
     };
+
+    var Invader = function(game, center) {
+        this.game = game;
+        this.size = { x: 15, y: 15 };
+        this.center = center;
+        this.patrolX = 0;
+        this.speedX = 0.3;
+    };
+
+    Invader.prototype = { 
+        update: function(gameSize) {
+                if (this.patrolX < 0 || this.patrolX > 40) {
+                    this.speedX = -this.speedX;
+                }
+                this.center.x += this.speedX;
+                this.patrolX += this.speedX;
+
+                if (Math.random() > 0.995 && !this.game.invadersBelow(this)) {
+                    var bullet = new Bullet( { x: this.center.x, y: this.center.y + this.size.x /2}, {x: Math.random() - 0.5, y: 2 });
+                    this.game.addBody(bullet);
+                }
+            }
+    };
+
+    var createInvaders = function(game){
+        var invaders = [];
+        for (var i = 0; i < 24; i++) {
+            var x = 30 + (i % 8) * 30;
+            var y = 30 + (i % 3) * 30;
+            invaders.push(new Invader(game, { x: x, y: y}));
+        }
+        return invaders;
+    }
 
     var Bullet = function(center, velocity) {
         this.size = { x: 3, y: 3 };
@@ -109,6 +160,23 @@
         this.KEYS = { LEFT: 37, RIGHT: 39, SPACE: 32 };
     }
 
+    var colliding = function(b1, b2) {
+        return !(b1 === b2 || 
+                b1.center.x + b1.size.x / 2 < b2.center.x - b2.size.x / 2 ||
+                b1.center.y + b1.size.y / 2 < b2.center.y - b2.size.y / 2 ||
+                b1.center.x - b1.size.x / 2 > b2.center.x + b2.size.x / 2 ||
+                b1.center.y - b1.size.y / 2 > b2.center.y + b2.size.y / 2);
+    };
+
+    var loadSound = function(url, callback) {
+        var loaded = function() {
+            callback(sound);
+            sound.removeEventListener('canplaythrough', loaded);
+        };
+        var sound = new Audio (url);
+        sound.addEventListener('canplaythrough', loaded);
+        sound.load();
+    };
     window.onload = function() {
         new Game('screen');
     };
