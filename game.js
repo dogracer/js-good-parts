@@ -7,17 +7,20 @@
         this.bodies = createInvaders(this).concat(new Player(this, gameSize));
 
         var self = this;
-        
-        var tick = function() {
-            self.update(gameSize);
-            self.draw(screen, gameSize);
-            // uncomment these lines to slow down the animation
-            //setTimeout(function() {
-                requestAnimationFrame(tick);
-                //}, 1000 / framesPerSecond);
-        };
+        // laser sound from http://www.findsounds.com/ISAPI/search.dll?keywords=laser
+        loadSound("shoot.wav", function(shootSound) {
+            self.shootSound = shootSound;
+            var tick = function() {
+                self.update(gameSize);
+                self.draw(screen, gameSize);
+                // uncomment these lines to slow down the animation
+                //setTimeout(function() {
+                    requestAnimationFrame(tick);
+                    //}, 1000 / framesPerSecond);
+            };
 
-        tick();
+            tick();
+        });
     };
 
     Game.prototype = {
@@ -72,6 +75,8 @@
             if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
                 var bullet = new Bullet( { x: this.center.x, y: this.center.y - this.size.x /2}, {x: 0, y: -6});
                 this.game.addBody(bullet);
+                this.game.shootSound.load();
+                this.game.shootSound.play();
             }
         }
     };
@@ -162,6 +167,15 @@
                 b1.center.y - b1.size.y / 2 > b2.center.y + b2.size.y / 2);
     };
 
+    var loadSound = function(url, callback) {
+        var loaded = function() {
+            callback(sound);
+            sound.removeEventListener('canplaythrough', loaded);
+        };
+        var sound = new Audio (url);
+        sound.addEventListener('canplaythrough', loaded);
+        sound.load();
+    };
     window.onload = function() {
         new Game('screen');
     };
