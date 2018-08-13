@@ -1,6 +1,10 @@
 // code typed out here: https://vimeo.com/105955605
 // getting rid of "this" keywords to fix JSLint errors:
 // https://stackoverflow.com/questions/30314944/jslint-error-unexpected-this/30375300#30375300
+/*global document*/
+/*global window*/
+/*global Audio*/
+/*global requestAnimationFrame*/
 "use strict";
 (function () {
     var Game = function (canvasId) {
@@ -25,15 +29,29 @@
 
     Game.prototype = {
         update: function (gameSize) {
-            var bodies = this.bodies;
+            var start_bodies = this.bodies;
             var notCollingWithAnything = function (b1) {
-                return bodies.filter(function (b2) {
+                return start_bodies.filter(function (b2) {
                     return colliding(b1, b2);
                 }).length === 0;
             };
             var i;
-            this.bodies = this.bodies.filter(notCollingWithAnything);
-            //this.bodies.foreach(update);
+            this.bodies = start_bodies.filter(notCollingWithAnything);
+            // this non-for loop doesn't work since addBody() pushes things onto
+            // the end of the this.bodies array
+            //this.bodies.forEach(function (body) {
+            //    body.update(gameSize);
+            //});
+            // https://stackoverflow.com/questions/30369014/about-jslint-its-dislike-of-for-loops-and-tail-call-optimization
+            // another attempt that also doesn't work based on:
+            // https://stackoverflow.com/questions/30518554/jslint-unexpected-for
+            //Array.prototype.slice.call(this.bodies).every(function (body) {
+            //    body.update(gameSize);
+            //});
+            //var oldLen = this.bodies.length;
+            //this.bodies.every(function (body) {
+            //    body.update(gameSize);
+            //});
             for (i = 0; i < this.bodies.length; i += 1) {
                 this.bodies[i].update(gameSize);
             }
@@ -41,9 +59,9 @@
         draw: function (screen, gameSize) {
             var i;
             screen.clearRect(0, 0, gameSize.x, gameSize.y);
-            for (i = 0; i < this.bodies.length; i += 1) {
-                drawRect(screen, this.bodies[i]);
-            }
+            this.bodies.forEach(function (body) {
+                drawRect(screen, body);
+            });
         },
         addBody: function (body) {
             this.bodies.push(body);
@@ -65,17 +83,17 @@
     };
 
     Player.prototype = {
-        update: function (item, index, arr) {
+        update: function (gameSize) {
             if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
                 this.center.x -= 2;
-                //if (this.center.x < 0 + this.size.x/2) {
-                //    this.center.x = this.size.x/2;
-                //}
+                if (this.center.x < 0 + this.size.x/2) {
+                    this.center.x = this.size.x/2;
+                }
             } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
                 this.center.x += 2;
-                //if (this.center.x > gameSize.x - this.size.x/2) {
-                //    this.center.x = gameSize.x - this.size.x/2;
-                //}
+                if (this.center.x > gameSize.x - this.size.x / 2) {
+                    this.center.x = gameSize.x - this.size.x / 2;
+                }
             }
             if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
                 var bullet = new Bullet({x: this.center.x, y: this.center.y - this.size.x / 2}, {x: 0, y: -6});
@@ -95,7 +113,7 @@
     };
 
     Invader.prototype = {
-        update: function (item, index, arr) {
+        update: function () {
             if (this.patrolX < 0 || this.patrolX > 40) {
                 this.speedX = -this.speedX;
             }
@@ -114,6 +132,7 @@
         var i;
         var x;
         var y;
+        // DWG write recursive function to do this math? and remove the for loop?
         for (i = 0; i < 24; i += 1) {
             x = 30 + (i % 8) * 30;
             y = 30 + (i % 3) * 30;
@@ -129,7 +148,7 @@
     };
 
     Bullet.prototype = {
-        update: function (item, index, arr) {
+        update: function () {
             this.center.x += this.velocity.x;
             this.center.y += this.velocity.y;
         }
@@ -137,8 +156,8 @@
 
     var drawRect = function (screen, body) {
         screen.fillRect(body.center.x - body.size.x / 2,
-                        body.center.y - body.size.y / 2,
-                        body.size.x, body.size.y);
+                body.center.y - body.size.y / 2,
+                body.size.x, body.size.y);
     };
 
     var Keyboarder = function () {
@@ -185,6 +204,6 @@
         sound.load();
     };
     window.onload = function () {
-        new Game('screen');
+        return new Game('screen');
     };
-})();
+}());
