@@ -129,15 +129,12 @@
 
     var createInvaders = function (game) {
         var invaders = [];
-        var i;
-        var x;
-        var y;
-        // DWG write recursive function to do this math? and remove the for loop?
-        for (i = 0; i < 24; i += 1) {
-            x = 30 + (i % 8) * 30;
-            y = 30 + (i % 3) * 30;
-            invaders.push(new Invader(game, {x: x, y: y}));
-        }
+        (function invaderPos(i) {
+            if (i < 24) {
+                invaders.push(new Invader(game, {x: 30 + (i % 8) * 30, y: 30 + (i % 3) * 30}));
+                invaderPos(i + 1);
+            }
+        }(0));
         return invaders;
     };
 
