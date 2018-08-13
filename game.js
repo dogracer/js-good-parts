@@ -57,7 +57,6 @@
             }
         },
         draw: function (screen, gameSize) {
-            var i;
             screen.clearRect(0, 0, gameSize.x, gameSize.y);
             this.bodies.forEach(function (body) {
                 drawRect(screen, body);
@@ -86,8 +85,8 @@
         update: function (gameSize) {
             if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
                 this.center.x -= 2;
-                if (this.center.x < 0 + this.size.x/2) {
-                    this.center.x = this.size.x/2;
+                if (this.center.x < 0 + this.size.x / 2) {
+                    this.center.x = this.size.x / 2;
                 }
             } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
                 this.center.x += 2;
