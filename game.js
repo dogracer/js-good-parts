@@ -11,8 +11,55 @@
         var canvas = document.getElementById(canvasId);
         var screen = canvas.getContext('2d');
         var gameSize = {x: canvas.width, y: canvas.height};
+        var player = function (game, gameSize) {
+            var keyState = {};
+
+            //window.onkeyup didn't work so well   for me, switched to document
+            document.onkeydown = function (e) {
+                //console.log(e.type + ' key=' + e.key + ' keycode=' + e.keyCode);
+                if (e.keyCode !== undefined) {
+                    keyState[e.keyCode] = true;
+                }
+            };
+            //window.onkeyup didn't work so well for me, switched to document
+            document.onkeyup = function (e) {
+                //console.log(e.type + ' key=' + e.key + ' keycode=' + e.keyCode);
+                if (e.keyCode !== undefined) {
+                    keyState[e.keyCode] = false;
+                }
+            };
+
+            return {
+                game: game,
+                size: {x: 15, y: 15},
+                center: {x: gameSize.x / 2, y: gameSize.y - 15},
+                KEYS: {LEFT: 37, RIGHT: 39, SPACE: 32},
+                isDown: function (keyCode) {
+                    return keyState[keyCode] === true;
+                },
+                update: function (gameSize) {
+                    if (this.isDown(this.KEYS.LEFT)) {
+                        this.center.x -= 2;
+                        if (this.center.x < 0 + this.size.x / 2) {
+                            this.center.x = this.size.x / 2;
+                        }
+                    } else if (this.isDown(this.KEYS.RIGHT)) {
+                        this.center.x += 2;
+                        if (this.center.x > gameSize.x - this.size.x / 2) {
+                            this.center.x = gameSize.x - this.size.x / 2;
+                        }
+                    }
+                    if (this.isDown(this.KEYS.SPACE)) {
+                        var bullet = new Bullet({x: this.center.x, y: this.center.y - this.size.x / 2}, {x: 0, y: -6});
+                        this.game.addBody(bullet);
+                        this.game.shootSound.load();
+                        this.game.shootSound.play();
+                    }
+                }
+            };
+        };
         var self = this;
-        self.bodies = createInvaders(self).concat(new Player(self, gameSize));
+        self.bodies = createInvaders(self).concat(player(self, gameSize));
 
         // laser sound from http://www.findsounds.com/ISAPI/search.dll?keywords=laser
         loadSound("shoot.wav", function (shootSound) {
@@ -74,35 +121,6 @@
         }
     };
 
-    var Player = function (game, gameSize) {
-        this.game = game;
-        this.size = {x: 15, y: 15};
-        this.center = {x: gameSize.x / 2, y: gameSize.y - this.size.x};
-        this.keyboarder = new Keyboarder();
-    };
-
-    Player.prototype = {
-        update: function (gameSize) {
-            if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
-                this.center.x -= 2;
-                if (this.center.x < 0 + this.size.x / 2) {
-                    this.center.x = this.size.x / 2;
-                }
-            } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
-                this.center.x += 2;
-                if (this.center.x > gameSize.x - this.size.x / 2) {
-                    this.center.x = gameSize.x - this.size.x / 2;
-                }
-            }
-            if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
-                var bullet = new Bullet({x: this.center.x, y: this.center.y - this.size.x / 2}, {x: 0, y: -6});
-                this.game.addBody(bullet);
-                this.game.shootSound.load();
-                this.game.shootSound.play();
-            }
-        }
-    };
-
     var Invader = function (game, center) {
         this.game = game;
         this.size = {x: 15, y: 15};
@@ -154,32 +172,6 @@
         screen.fillRect(body.center.x - body.size.x / 2,
                 body.center.y - body.size.y / 2,
                 body.size.x, body.size.y);
-    };
-
-    var Keyboarder = function () {
-        var keyState = {};
-
-        //window.onkeyup didn't work so well for me, switched to document
-        document.onkeydown = function (e) {
-            //console.log(e.type + ' key=' + e.key + ' keycode=' + e.keyCode);
-            if (e.keyCode !== undefined) {
-                keyState[e.keyCode] = true;
-            }
-        };
-
-        //window.onkeyup didn't work so well for me, switched to document
-        document.onkeyup = function (e) {
-            //console.log(e.type + ' key=' + e.key + ' keycode=' + e.keyCode);
-            if (e.keyCode !== undefined) {
-                keyState[e.keyCode] = false;
-            }
-        };
-
-        this.isDown = function (keyCode) {
-            return keyState[keyCode] === true;
-        };
-
-        this.KEYS = {LEFT: 37, RIGHT: 39, SPACE: 32};
     };
 
     var colliding = function (b1, b2) {
