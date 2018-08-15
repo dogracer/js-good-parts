@@ -119,7 +119,8 @@
                     b1.center.x - b1.size.x / 2 > b2.center.x + b2.size.x / 2 ||
                     b1.center.y - b1.size.y / 2 > b2.center.y + b2.size.y / 2);
         };
-        var bodies = {};
+        var bodies = [];
+        var newlyAddedBodies = [];
 
         return {
             shootSound: {},
@@ -136,25 +137,16 @@
                         return colliding(b1, b2);
                     }).length === 0;
                 };
-                var i;
+                //var i;
                 bodies = start_bodies.filter(notCollingWithAnything);
-                // this non-for loop doesn't work since addBody() pushes things onto
-                // the end of the this.bodies array
-                //this.bodies.forEach(function (body) {
-                //    body.update(gameSize);
-                //});
-                // https://stackoverflow.com/questions/30369014/about-jslint-its-dislike-of-for-loops-and-tail-call-optimization
-                // another attempt that also doesn't work based on:
-                // https://stackoverflow.com/questions/30518554/jslint-unexpected-for
-                //Array.prototype.slice.call(this.bodies).every(function (body) {
-                //    body.update(gameSize);
-                //});
-                //var oldLen = this.bodies.length;
-                //this.bodies.every(function (body) {
-                //    body.update(gameSize);
-                //});
-                for (i = 0; i < bodies.length; i += 1) {
-                    bodies[i].update(bodies[i]);
+                bodies.forEach(function (body) {
+                    body.update(body);
+                });
+                if (newlyAddedBodies.length > 0) {
+                    newlyAddedBodies.forEach(function (body) {
+                        body.update(body);
+                    });
+                    newlyAddedBodies = [];
                 }
             },
             draw: function () {
@@ -165,6 +157,7 @@
             },
             addBody: function (body) {
                 bodies.push(body);
+                newlyAddedBodies.push(body);
             },
             invadersBelow: function (thisInvader) {
                 return bodies.filter(function (b) {
