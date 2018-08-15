@@ -74,7 +74,6 @@
             };
         };
         var invader = function (theGame, theCenter) {
-            var myGame = theGame;
             var thePatrolX = 0;
             var theSpeedX = 0.3;
             var theSize = {x: 15, y: 15};
@@ -90,20 +89,19 @@
                     theCenter.x += theSpeedX;
                     thePatrolX += theSpeedX;
 
-                    if (Math.random() > 0.995 && !myGame.invadersBelow(this)) {
+                    if (Math.random() > 0.995 && !theGame.invadersBelow(this)) {
                         var enemyBullet = bullet({x: theCenter.x, y: theCenter.y + theSize.x / 2}, {x: Math.random() - 0.5, y: 2});
-                        myGame.addBody(enemyBullet);
+                        theGame.addBody(enemyBullet);
                     }
                 }
             };
         };
         var createInvaders = function (theGame) {
             var invaders = [];
-            var myGame = theGame;
 
             (function invaderPos(i) {
                 if (i < 24) {
-                    invaders.push(invader(myGame, {x: 30 + (i % 8) * 30, y: 30 + (i % 3) * 30}));
+                    invaders.push(invader(theGame, {x: 30 + (i % 8) * 30, y: 30 + (i % 3) * 30}));
                     invaderPos(i + 1);
                 }
             }(0));
@@ -125,8 +123,8 @@
 
         return {
             shootSound: {},
-            populate: function () {
-                bodies = createInvaders(this).concat(player(this));
+            populate: function (theGame) {
+                bodies = createInvaders(theGame).concat(player(theGame));
             },
             update: function () {
                 var start_bodies = bodies;
@@ -185,7 +183,8 @@
     };
     window.onload = function () {
         var myGame = game('screen');
-        myGame.populate();
+        // DWG: this populate call seems just plain stupid to me!
+        myGame.populate(myGame);
         // laser sound from http://www.findsounds.com/ISAPI/search.dll?keywords=laser
         myGame.loadSound("shoot.wav", function (theShootSound) {
             myGame.shootSound = theShootSound;
