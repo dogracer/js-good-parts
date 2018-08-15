@@ -52,7 +52,7 @@
             return {
                 size: theSize,
                 center: theCenter,
-                update: function (gameSize) {
+                update: function () {
                     if (isDown(KEYS.LEFT)) {
                         theCenter.x -= 2;
                         if (theCenter.x < 0 + theSize.x / 2) {
@@ -60,8 +60,8 @@
                         }
                     } else if (isDown(KEYS.RIGHT)) {
                         theCenter.x += 2;
-                        if (theCenter.x > gameSize.x - theSize.x / 2) {
-                            theCenter.x = gameSize.x - theSize.x / 2;
+                        if (theCenter.x > myGame.getGameSize().x - theSize.x / 2) {
+                            theCenter.x = myGame.getGameSize().x - theSize.x / 2;
                         }
                     }
                     if (isDown(KEYS.SPACE)) {
@@ -82,14 +82,14 @@
                 speedX: theSpeedX,
                 size: theSize,
                 center: theCenter,
-                update: function () {
+                update: function (body) {
                     if (thePatrolX < 0 || thePatrolX > 40) {
                         theSpeedX = -theSpeedX;
                     }
                     theCenter.x += theSpeedX;
                     thePatrolX += theSpeedX;
 
-                    if (Math.random() > 0.995 && !theGame.invadersBelow(this)) {
+                    if (Math.random() > 0.995 && !theGame.invadersBelow(body)) {
                         var enemyBullet = bullet({x: theCenter.x, y: theCenter.y + theSize.x / 2}, {x: Math.random() - 0.5, y: 2});
                         theGame.addBody(enemyBullet);
                     }
@@ -126,6 +126,9 @@
             populate: function (theGame) {
                 bodies = createInvaders(theGame).concat(player(theGame));
             },
+            getGameSize: function () {
+                return gameSize;
+            },
             update: function () {
                 var start_bodies = bodies;
                 var notCollingWithAnything = function (b1) {
@@ -151,7 +154,7 @@
                 //    body.update(gameSize);
                 //});
                 for (i = 0; i < bodies.length; i += 1) {
-                    bodies[i].update(gameSize);
+                    bodies[i].update(bodies[i]);
                 }
             },
             draw: function () {
