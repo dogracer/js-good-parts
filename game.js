@@ -170,10 +170,10 @@
             },
             loadSound: function (url, callback) {
                 var sound = new Audio(url);
-                var loaded = function () {
+                function loaded() {
                     callback(sound);
                     sound.removeEventListener('canplaythrough', loaded);
-                };
+                }
                 sound.addEventListener('canplaythrough', loaded);
                 sound.load();
             }
@@ -185,12 +185,11 @@
         // laser sound from http://www.findsounds.com/ISAPI/search.dll?keywords=laser
         myGame.loadSound("shoot.wav", function (theShootSound) {
             myGame.shootSound = theShootSound;
-            var tick = function () {
+            (function tick() {
                 myGame.update();
                 myGame.draw();
                 requestAnimationFrame(tick);
-            };
-            tick();
+            }());
         });
         return myGame;
     };
