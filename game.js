@@ -19,8 +19,8 @@
                 center: theCenter,
                 velocity: theVelocity,
                 update: function () {
-                    this.center.x += this.velocity.x;
-                    this.center.y += this.velocity.y;
+                    theCenter.x += theVelocity.x;
+                    theCenter.y += theVelocity.y;
                 }
             };
         };
@@ -28,6 +28,8 @@
             var keyState = {};
             var KEYS = {LEFT: 37, RIGHT: 39, SPACE: 32};
             var myGame = theGame;
+            var theCenter = {x: gameSize.x / 2, y: gameSize.y - 15};
+            var theSize = {x: 15, y: 15};
 
             //window.onkeyup didn't work so well   for me, switched to document
             document.onkeydown = function (e) {
@@ -43,27 +45,27 @@
                     keyState[e.keyCode] = false;
                 }
             };
+            function isDown(keyCode) {
+                return keyState[keyCode] === true;
+            }
 
             return {
-                size: {x: 15, y: 15},
-                center: {x: gameSize.x / 2, y: gameSize.y - 15},
-                isDown: function (keyCode) {
-                    return keyState[keyCode] === true;
-                },
+                size: theSize,
+                center: theCenter,
                 update: function (gameSize) {
-                    if (this.isDown(KEYS.LEFT)) {
-                        this.center.x -= 2;
-                        if (this.center.x < 0 + this.size.x / 2) {
-                            this.center.x = this.size.x / 2;
+                    if (isDown(KEYS.LEFT)) {
+                        theCenter.x -= 2;
+                        if (theCenter.x < 0 + theSize.x / 2) {
+                            theCenter.x = theSize.x / 2;
                         }
-                    } else if (this.isDown(KEYS.RIGHT)) {
-                        this.center.x += 2;
-                        if (this.center.x > gameSize.x - this.size.x / 2) {
-                            this.center.x = gameSize.x - this.size.x / 2;
+                    } else if (isDown(KEYS.RIGHT)) {
+                        theCenter.x += 2;
+                        if (theCenter.x > gameSize.x - theSize.x / 2) {
+                            theCenter.x = gameSize.x - theSize.x / 2;
                         }
                     }
-                    if (this.isDown(KEYS.SPACE)) {
-                        var shootingBullet = bullet({x: this.center.x, y: this.center.y - this.size.x / 2}, {x: 0, y: -6});
+                    if (isDown(KEYS.SPACE)) {
+                        var shootingBullet = bullet({x: theCenter.x, y: theCenter.y - theSize.x / 2}, {x: 0, y: -6});
                         myGame.addBody(shootingBullet);
                         myGame.shootSound.load();
                         myGame.shootSound.play();
@@ -73,21 +75,23 @@
         };
         var invader = function (theGame, theCenter) {
             var myGame = theGame;
-
+            var thePatrolX = 0;
+            var theSpeedX = 0.3;
+            var theSize = {x: 15, y: 15};
             return {
-                patrolX: 0,
-                speedX: 0.3,
-                size: {x: 15, y: 15},
+                patrolX: thePatrolX,
+                speedX: theSpeedX,
+                size: theSize,
                 center: theCenter,
                 update: function () {
-                    if (this.patrolX < 0 || this.patrolX > 40) {
-                        this.speedX = -this.speedX;
+                    if (thePatrolX < 0 || thePatrolX > 40) {
+                        theSpeedX = -theSpeedX;
                     }
-                    this.center.x += this.speedX;
-                    this.patrolX += this.speedX;
+                    theCenter.x += theSpeedX;
+                    thePatrolX += theSpeedX;
 
                     if (Math.random() > 0.995 && !myGame.invadersBelow(this)) {
-                        var enemyBullet = bullet({x: this.center.x, y: this.center.y + this.size.x / 2}, {x: Math.random() - 0.5, y: 2});
+                        var enemyBullet = bullet({x: theCenter.x, y: theCenter.y + theSize.x / 2}, {x: Math.random() - 0.5, y: 2});
                         myGame.addBody(enemyBullet);
                     }
                 }
