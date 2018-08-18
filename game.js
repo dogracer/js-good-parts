@@ -56,6 +56,8 @@
 
     Player.prototype = {
         update: function (gameSize) {
+            var playPromise;
+            var skipLoadNextTime = false;
             if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
                 this.center.x -= 2;
                 if (this.center.x < 0 + this.size.x / 2) {
@@ -70,8 +72,20 @@
             if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
                 var bullet = new Bullet({x: this.center.x, y: this.center.y - this.size.x / 2}, {x: 0, y: -6});
                 this.game.addBody(bullet);
-                this.game.shootSound.load();
-                this.game.shootSound.play();
+                if (!skipLoadNextTime) {
+                    this.game.shootSound.load();
+                }
+                // https://developers.google.com/web/updates/2017/06/play-request-was-interrupted
+                playPromise = this.game.shootSound.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(function () {
+                        // it will not be safe to call load since it would interrupt play() from last call
+                        skipLoadNextTime = false;
+                    })
+                        .catch(function () {
+                            skipLoadNextTime = true;
+                        });
+                }
             }
         }
     };
