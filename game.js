@@ -5,6 +5,10 @@
 /*global window*/
 /*global Audio*/
 /*global requestAnimationFrame*/
+/*jslint
+    this
+    for
+*/
 "use strict";
 (function () {
     var Game = function (canvasId) {
