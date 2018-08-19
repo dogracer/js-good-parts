@@ -144,6 +144,7 @@
     var Game = function (canvasId) {
         var canvas = document.getElementById(canvasId);
         this.screen = canvas.getContext('2d');
+        this.screen.fillStyle="#FFFFFF";
         this.gameSize = {x: canvas.width, y: canvas.height};
         this.bodies = createInvaders(this).concat(new Player(this, this.gameSize));
     };
@@ -195,7 +196,7 @@
     window.onload = function () {
         var myGame = new Game('screen');
         // laser sound from http://www.findsounds.com/ISAPI/search.dll?keywords=laser
-        loadSound("shoot.wav", function (theShootSound) {
+        loadSound("https://cdn.glitch.com/d7cd53b1-e67a-4583-a50a-ab66b048c323%2Fshoot.wav?1534647115994", function (theShootSound) {
             myGame.shootSound = theShootSound;
             (function tick() {
                 myGame.update();
