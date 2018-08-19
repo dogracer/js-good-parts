@@ -2,6 +2,7 @@
 // getting rid of "this" keywords to fix JSLint errors:
 // https://stackoverflow.com/questions/30314944/jslint-error-unexpected-this/30375300#30375300
 /*global document*/
+/*global console*/
 /*global window*/
 /*global Audio*/
 /*global requestAnimationFrame*/
@@ -141,10 +142,128 @@
                 body.size.x, body.size.y);
     };
 
+    var ongoingTouches = [];
+
+    function colorForTouch(touch) {
+        var r = touch.identifier % 16;
+        var g = Math.floor(touch.identifier / 3) % 16;
+        var b = Math.floor(touch.identifier / 7) % 16;
+        r = r.toString(16); // make it a hex digit
+        g = g.toString(16); // make it a hex digit
+        b = b.toString(16); // make it a hex digit
+        var color = "#" + r + g + b;
+        console.log("color for touch with identifier " + touch.identifier + " = " + color);
+        return color;
+    }
+
+    function copyTouch(touch) {
+        return {identifier: touch.identifier, pageX: touch.pageX, pageY: touch.pageY};
+    }
+
+    function ongoingTouchIndexById(idToFind) {
+        var i, id;
+        for (i = 0; i < ongoingTouches.length; i += 1) {
+            id = ongoingTouches[i].identifier;
+            if (id === idToFind) {
+                return i;
+            }
+        }
+        return -1;    // not found
+    }
+
+    function handleMove(evt) {
+        evt.preventDefault();
+        var ctx = this.screen;
+        var touches = evt.changedTouches;
+        var i, color, idx;
+
+        for (i = 0; i < touches.length; i += 1) {
+            color = colorForTouch(touches[i]);
+            idx = ongoingTouchIndexById(touches[i].identifier);
+
+            if (idx >= 0) {
+                console.log("continuing touch " + idx);
+                ctx.beginPath();
+                console.log("ctx.moveTo(" + ongoingTouches[idx].pageX + ", " + ongoingTouches[idx].pageY + ");");
+                ctx.moveTo(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY);
+                console.log("ctx.lineTo(" + touches[i].pageX + ", " + touches[i].pageY + ");");
+                ctx.lineTo(touches[i].pageX, touches[i].pageY);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = color;
+                ctx.stroke();
+
+                ongoingTouches.splice(idx, 1, copyTouch(touches[i]));  // swap in the new touch record
+                console.log(".");
+            } else {
+                console.log("can't figure out which touch to continue");
+            }
+        }
+    }
+
+    function handleStart(evt) {
+        evt.preventDefault();
+        var ctx = this.screen;
+        var touches = evt.changedTouches;
+        var i, color;
+        console.log("touchstart.");
+        for (i = 0; i < touches.length; i += 1) {
+            console.log("touchstart:" + i + "...");
+            ongoingTouches.push(copyTouch(touches[i]));
+            color = colorForTouch(touches[i]);
+            ctx.beginPath();
+            ctx.arc(touches[i].pageX, touches[i].pageY, 4, 0, 2 * Math.PI, false);  // a circle at the start
+            ctx.fillStyle = color;
+            ctx.fill();
+            console.log("touchstart:" + i + ".");
+        }
+    }
+
+    function handleEnd(evt) {
+        evt.preventDefault();
+        console.log("touchend");
+        var el = document.getElementsByTagName("canvas")[0];
+        var ctx = el.getContext("2d");
+        var touches = evt.changedTouches;
+        var i, idx, color;
+
+        for (i = 0; i < touches.length; i += 1) {
+            color = colorForTouch(touches[i]);
+            idx = ongoingTouchIndexById(touches[i].identifier);
+
+            if (idx >= 0) {
+                ctx.lineWidth = 4;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY);
+                ctx.lineTo(touches[i].pageX, touches[i].pageY);
+                ctx.fillRect(touches[i].pageX - 4, touches[i].pageY - 4, 8, 8);  // and a square at the end
+                ongoingTouches.splice(idx, 1);  // remove it; we're done
+            } else {
+                console.log("can't figure out which touch to end");
+            }
+        }
+    }
+
+    function handleCancel(evt) {
+        evt.preventDefault();
+        console.log("touchcancel.");
+        var touches = evt.changedTouches;
+        var i, idx;
+
+        for (i = 0; i < touches.length; i += 1) {
+            idx = ongoingTouchIndexById(touches[i].identifier);
+            ongoingTouches.splice(idx, 1);  // remove it; we're done
+        }
+    }
+
     var Game = function (canvasId) {
         var canvas = document.getElementById(canvasId);
         this.screen = canvas.getContext('2d');
-        this.screen.fillStyle="#FFFFFF";
+        //this.screen.addEventListener("touchstart", handleStart, false);
+        //this.screen.addEventListener("touchend", handleEnd, false);
+        //this.screen.addEventListener("touchcancel", handleCancel, false);
+        //this.screen.addEventListener("touchmove", handleMove, false);
+        this.screen.fillStyle = "#FFFFFF";
         this.gameSize = {x: canvas.width, y: canvas.height};
         this.bodies = createInvaders(this).concat(new Player(this, this.gameSize));
     };
