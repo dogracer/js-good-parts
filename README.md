@@ -1,5 +1,3 @@
-# js-good-parts
-
 My Take on Mary Rose Cook's Space Invaders
 =================
 
