@@ -8,5 +8,6 @@ body {
   
   canvas {
     background-color: black; 
+    touch-action: none;
   }
   

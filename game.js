@@ -85,15 +85,130 @@
         this.KEYS = {LEFT: 37, RIGHT: 39, SPACE: 32};
     };
 
+    function getGesturePointFromEvent(evt) {
+        var point = {};
+
+        if (evt.targetTouches) {
+            // Prefer Touch Events
+            point.x = evt.targetTouches[0].clientX;
+            point.y = evt.targetTouches[0].clientY;
+        } else {
+            // Either Mouse event or Pointer Event
+            point.x = evt.clientX;
+            point.y = evt.clientY;
+        }
+
+        return point;
+    }
+
+    // adapted from:
+    // article: https://developers.google.com/web/fundamentals/design-and-ux/input/touch/#implement-custom-gestures
+    // live demo/source: https://googlesamples.github.io/web-fundamentals/fundamentals/design-and-ux/input/touch/touch-demo-1.html
+    var TouchAndMouser = function (player) {
+        var rafPending = false;
+        var initialTouchPos = null;
+        var lastTouchPos = null;
+
+        this.handleMove = (function (evt) {
+            evt.preventDefault();
+
+            if (!initialTouchPos) {
+                return;
+            }
+
+            lastTouchPos = getGesturePointFromEvent(evt);
+
+            if (rafPending) {
+                return;
+            }
+
+            rafPending = true;
+        }).bind(this);
+
+        this.handleEnd = (function (evt) {
+            evt.preventDefault();
+            //console.log("touchend.");
+
+            if (evt.touches && evt.touches.length > 1) {
+                return;
+            }
+
+            rafPending = false;
+
+            // Remove Event Listeners
+            if (window.PointerEvent) {
+                evt.target.releasePointerCapture(evt.pointerId);
+            } else {
+                // Remove Mouse Listeners
+                document.removeEventListener('mousemove', this.handleMove, true);
+                document.removeEventListener('mouseup', this.handleEnd, true);
+            }
+
+            //update player position;
+            var differenceInX = initialTouchPos.x - lastTouchPos.x;
+
+            player.center.x -= differenceInX;
+            if (player.center.x < 0 + player.size.x / 2) {
+                player.center.x = player.size.x / 2;
+            } else {
+                if (player.center.x > player.gameSize.x - player.size.x / 2) {
+                    player.center.x = player.gameSize.x - player.size.x / 2;
+                }
+            }
+
+            initialTouchPos = null;
+        }).bind(this);
+
+        this.handleStart = (function (evt) {
+            evt.preventDefault();
+
+            if (evt.touches && evt.touches.length > 1) {
+                return;
+            }
+            //console.log("touchstart.");
+            if (window.PointerEvent) {
+                evt.target.setPointerCapture(evt.pointerId);
+            } else {
+                // add moutse listeners
+                document.addEventListener("mousemove", this.handleMove, true);
+                document.addEventListener("mouseup", this.handleEnd, true);
+            }
+
+            initialTouchPos = getGesturePointFromEvent(evt);
+        }).bind(this);
+
+        this.handleCancel = (function (evt) {
+            evt.preventDefault();
+            //console.log("touchcancel.");
+
+        }).bind(this);
+
+        if (window.PointerEvent) {
+            document.addEventListener("pointerdown", this.handleStart, true);
+            document.addEventListener("pointerup", this.handleEnd, true);
+            document.addEventListener("pointercancel", this.handleCancel, true);
+            document.addEventListener("pointermove", this.handleMove, true);
+        } else {
+            document.addEventListener("touchstart", this.handleStart, true);
+            document.addEventListener("touchend", this.handleEnd, true);
+            document.addEventListener("touchcancel", this.handleCancel, true);
+            document.addEventListener("touchmove", this.handleMove, true);
+
+            document.addEventListener("mousedown", this.handleStart, true);
+        }
+    };
+
     var Player = function (game, gameSize) {
         this.game = game;
+        this.gameSize = gameSize;
         this.size = {x: 15, y: 15};
         this.center = {x: gameSize.x / 2, y: gameSize.y - this.size.x};
         this.keyboarder = new Keyboarder();
+        this.touchAndMouser = new TouchAndMouser(this);
     };
 
     Player.prototype = {
-        update: function (gameSize) {
+        update: function () {
             var playPromise;
             var skipLoadNextTime = false;
             if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
@@ -103,8 +218,8 @@
                 }
             } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
                 this.center.x += 2;
-                if (this.center.x > gameSize.x - this.size.x / 2) {
-                    this.center.x = gameSize.x - this.size.x / 2;
+                if (this.center.x > this.gameSize.x - this.size.x / 2) {
+                    this.center.x = this.gameSize.x - this.size.x / 2;
                 }
             }
             if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
@@ -142,127 +257,9 @@
                 body.size.x, body.size.y);
     };
 
-    var ongoingTouches = [];
-
-    function colorForTouch(touch) {
-        var r = touch.identifier % 16;
-        var g = Math.floor(touch.identifier / 3) % 16;
-        var b = Math.floor(touch.identifier / 7) % 16;
-        r = r.toString(16); // make it a hex digit
-        g = g.toString(16); // make it a hex digit
-        b = b.toString(16); // make it a hex digit
-        var color = "#" + r + g + b;
-        console.log("color for touch with identifier " + touch.identifier + " = " + color);
-        return color;
-    }
-
-    function copyTouch(touch) {
-        return {identifier: touch.identifier, pageX: touch.pageX, pageY: touch.pageY};
-    }
-
-    function ongoingTouchIndexById(idToFind) {
-        var i, id;
-        for (i = 0; i < ongoingTouches.length; i += 1) {
-            id = ongoingTouches[i].identifier;
-            if (id === idToFind) {
-                return i;
-            }
-        }
-        return -1;    // not found
-    }
-
-    function handleMove(evt) {
-        evt.preventDefault();
-        var ctx = this.screen;
-        var touches = evt.changedTouches;
-        var i, color, idx;
-
-        for (i = 0; i < touches.length; i += 1) {
-            color = colorForTouch(touches[i]);
-            idx = ongoingTouchIndexById(touches[i].identifier);
-
-            if (idx >= 0) {
-                console.log("continuing touch " + idx);
-                ctx.beginPath();
-                console.log("ctx.moveTo(" + ongoingTouches[idx].pageX + ", " + ongoingTouches[idx].pageY + ");");
-                ctx.moveTo(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY);
-                console.log("ctx.lineTo(" + touches[i].pageX + ", " + touches[i].pageY + ");");
-                ctx.lineTo(touches[i].pageX, touches[i].pageY);
-                ctx.lineWidth = 4;
-                ctx.strokeStyle = color;
-                ctx.stroke();
-
-                ongoingTouches.splice(idx, 1, copyTouch(touches[i]));  // swap in the new touch record
-                console.log(".");
-            } else {
-                console.log("can't figure out which touch to continue");
-            }
-        }
-    }
-
-    function handleStart(evt) {
-        evt.preventDefault();
-        var ctx = this.screen;
-        var touches = evt.changedTouches;
-        var i, color;
-        console.log("touchstart.");
-        for (i = 0; i < touches.length; i += 1) {
-            console.log("touchstart:" + i + "...");
-            ongoingTouches.push(copyTouch(touches[i]));
-            color = colorForTouch(touches[i]);
-            ctx.beginPath();
-            ctx.arc(touches[i].pageX, touches[i].pageY, 4, 0, 2 * Math.PI, false);  // a circle at the start
-            ctx.fillStyle = color;
-            ctx.fill();
-            console.log("touchstart:" + i + ".");
-        }
-    }
-
-    function handleEnd(evt) {
-        evt.preventDefault();
-        console.log("touchend");
-        var el = document.getElementsByTagName("canvas")[0];
-        var ctx = el.getContext("2d");
-        var touches = evt.changedTouches;
-        var i, idx, color;
-
-        for (i = 0; i < touches.length; i += 1) {
-            color = colorForTouch(touches[i]);
-            idx = ongoingTouchIndexById(touches[i].identifier);
-
-            if (idx >= 0) {
-                ctx.lineWidth = 4;
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.moveTo(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY);
-                ctx.lineTo(touches[i].pageX, touches[i].pageY);
-                ctx.fillRect(touches[i].pageX - 4, touches[i].pageY - 4, 8, 8);  // and a square at the end
-                ongoingTouches.splice(idx, 1);  // remove it; we're done
-            } else {
-                console.log("can't figure out which touch to end");
-            }
-        }
-    }
-
-    function handleCancel(evt) {
-        evt.preventDefault();
-        console.log("touchcancel.");
-        var touches = evt.changedTouches;
-        var i, idx;
-
-        for (i = 0; i < touches.length; i += 1) {
-            idx = ongoingTouchIndexById(touches[i].identifier);
-            ongoingTouches.splice(idx, 1);  // remove it; we're done
-        }
-    }
-
     var Game = function (canvasId) {
         var canvas = document.getElementById(canvasId);
         this.screen = canvas.getContext('2d');
-        //this.screen.addEventListener("touchstart", handleStart, false);
-        //this.screen.addEventListener("touchend", handleEnd, false);
-        //this.screen.addEventListener("touchcancel", handleCancel, false);
-        //this.screen.addEventListener("touchmove", handleMove, false);
         this.screen.fillStyle = "#FFFFFF";
         this.gameSize = {x: canvas.width, y: canvas.height};
         this.bodies = createInvaders(this).concat(new Player(this, this.gameSize));
@@ -279,7 +276,7 @@
             };
             this.bodies = this.bodies.filter(notCollingWithAnything);
             for (i = 0; i < this.bodies.length; i += 1) {
-                this.bodies[i].update(this.gameSize);
+                this.bodies[i].update();
             }
         },
         draw: function () {
