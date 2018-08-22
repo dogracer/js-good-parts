@@ -14,6 +14,7 @@
 (function () {
     var Bullet = function (center, velocity) {
         this.size = {x: 3, y: 3};
+        this.active = true;
         this.center = center;
         this.velocity = velocity;
     };
@@ -28,6 +29,7 @@
     var Invader = function (game, center) {
         this.game = game;
         this.size = {x: 15, y: 15};
+        this.active = true;
         this.center = center;
         this.patrolX = 0;
         this.speedX = 0.3;
@@ -64,7 +66,6 @@
 
         //window.onkeyup didn't work so well for me, switched to document
         document.onkeydown = function (e) {
-            //console.log(e.type + ' key=' + e.key + ' keycode=' + e.keyCode);
             if (e.keyCode !== undefined) {
                 keyState[e.keyCode] = true;
             }
@@ -72,7 +73,6 @@
 
         //window.onkeyup didn't work so well for me, switched to document
         document.onkeyup = function (e) {
-            //console.log(e.type + ' key=' + e.key + ' keycode=' + e.keyCode);
             if (e.keyCode !== undefined) {
                 keyState[e.keyCode] = false;
             }
@@ -109,7 +109,26 @@
         var initialTouchPos = null;
         var lastTouchPos = null;
 
-        this.handleMove = (function (evt) {
+        function onAnimFrame() {
+            if (!rafPending) {
+                return;
+            }
+
+            var differenceInX = initialTouchPos.x - lastTouchPos.x;
+
+            player.center.x -= differenceInX;
+            if (player.center.x < 0 + player.size.x / 2) {
+                player.center.x = player.size.x / 2;
+            } else {
+                if (player.center.x > player.gameSize.x - player.size.x / 2) {
+                    player.center.x = player.gameSize.x - player.size.x / 2;
+                }
+            }
+
+            rafPending = false;
+        }
+
+        this.handleMove = function (evt) {
             evt.preventDefault();
 
             if (!initialTouchPos) {
@@ -123,15 +142,18 @@
             }
 
             rafPending = true;
-        }).bind(this);
 
-        this.handleEnd = (function (evt) {
+            requestAnimationFrame(onAnimFrame);
+        };
+
+        this.handleEnd = function (evt) {
             evt.preventDefault();
-            //console.log("touchend.");
 
-            if (evt.touches && evt.touches.length > 1) {
+            if (evt.touches && evt.touches.length > 0) {
                 return;
             }
+
+            lastTouchPos = getGesturePointFromEvent(evt);
 
             rafPending = false;
 
@@ -144,28 +166,20 @@
                 document.removeEventListener('mouseup', this.handleEnd, true);
             }
 
-            //update player position;
-            var differenceInX = initialTouchPos.x - lastTouchPos.x;
-
-            player.center.x -= differenceInX;
-            if (player.center.x < 0 + player.size.x / 2) {
-                player.center.x = player.size.x / 2;
-            } else {
-                if (player.center.x > player.gameSize.x - player.size.x / 2) {
-                    player.center.x = player.gameSize.x - player.size.x / 2;
-                }
+            // tap or click with no horizontal movement should fire a bullet
+            if (initialTouchPos.x === lastTouchPos.x) {
+                player.fire();
             }
 
             initialTouchPos = null;
-        }).bind(this);
+        };
 
-        this.handleStart = (function (evt) {
+        this.handleStart = function (evt) {
             evt.preventDefault();
 
             if (evt.touches && evt.touches.length > 1) {
                 return;
             }
-            //console.log("touchstart.");
             if (window.PointerEvent) {
                 evt.target.setPointerCapture(evt.pointerId);
             } else {
@@ -175,13 +189,11 @@
             }
 
             initialTouchPos = getGesturePointFromEvent(evt);
-        }).bind(this);
+        };
 
-        this.handleCancel = (function (evt) {
+        this.handleCancel = function (evt) {
             evt.preventDefault();
-            //console.log("touchcancel.");
-
-        }).bind(this);
+        };
 
         if (window.PointerEvent) {
             document.addEventListener("pointerdown", this.handleStart, true);
@@ -201,6 +213,7 @@
     var Player = function (game, gameSize) {
         this.game = game;
         this.gameSize = gameSize;
+        this.active = true;
         this.size = {x: 15, y: 15};
         this.center = {x: gameSize.x / 2, y: gameSize.y - this.size.x};
         this.keyboarder = new Keyboarder();
@@ -208,22 +221,11 @@
     };
 
     Player.prototype = {
-        update: function () {
+        fire: function () {
             var playPromise;
             var skipLoadNextTime = false;
-            if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
-                this.center.x -= 2;
-                if (this.center.x < 0 + this.size.x / 2) {
-                    this.center.x = this.size.x / 2;
-                }
-            } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
-                this.center.x += 2;
-                if (this.center.x > this.gameSize.x - this.size.x / 2) {
-                    this.center.x = this.gameSize.x - this.size.x / 2;
-                }
-            }
-            if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
-                var bullet = new Bullet({x: this.center.x, y: this.center.y - this.size.x / 2}, {x: 0, y: -6});
+            var bullet = new Bullet({x: this.center.x, y: this.center.y - 15 - this.size.x / 2}, {x: 0, y: -6});
+            if (this.active) {
                 this.game.addBody(bullet);
                 if (!skipLoadNextTime) {
                     this.game.shootSound.load();
@@ -239,6 +241,22 @@
                             skipLoadNextTime = true;
                         });
                 }
+            }
+        },
+        update: function () {
+            if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
+                this.center.x -= 2;
+                if (this.center.x < 0 + this.size.x / 2) {
+                    this.center.x = this.size.x / 2;
+                }
+            } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
+                this.center.x += 2;
+                if (this.center.x > this.gameSize.x - this.size.x / 2) {
+                    this.center.x = this.gameSize.x - this.size.x / 2;
+                }
+            }
+            if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
+                this.fire();
             }
         }
     };
@@ -271,7 +289,12 @@
             var i;
             var notCollingWithAnything = function (b1) {
                 return bodies.filter(function (b2) {
-                    return colliding(b1, b2);
+                    var collisionDetected = colliding(b1, b2);
+                    if (collisionDetected) {
+                        b1.active = false;
+                        b2.active = false;
+                    }
+                    return collisionDetected;
                 }).length === 0;
             };
             this.bodies = this.bodies.filter(notCollingWithAnything);
