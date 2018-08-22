@@ -2,6 +2,7 @@
 // getting rid of "this" keywords to fix JSLint errors:
 // https://stackoverflow.com/questions/30314944/jslint-error-unexpected-this/30375300#30375300
 /*global document*/
+/*global console*/
 /*global window*/
 /*global Audio*/
 /*global requestAnimationFrame*/
@@ -13,6 +14,7 @@
 (function () {
     var Bullet = function (center, velocity) {
         this.size = {x: 3, y: 3};
+        this.active = true;
         this.center = center;
         this.velocity = velocity;
     };
@@ -27,6 +29,7 @@
     var Invader = function (game, center) {
         this.game = game;
         this.size = {x: 15, y: 15};
+        this.active = true;
         this.center = center;
         this.patrolX = 0;
         this.speedX = 0.3;
@@ -63,7 +66,6 @@
 
         //window.onkeyup didn't work so well for me, switched to document
         document.onkeydown = function (e) {
-            //console.log(e.type + ' key=' + e.key + ' keycode=' + e.keyCode);
             if (e.keyCode !== undefined) {
                 keyState[e.keyCode] = true;
             }
@@ -71,7 +73,6 @@
 
         //window.onkeyup didn't work so well for me, switched to document
         document.onkeyup = function (e) {
-            //console.log(e.type + ' key=' + e.key + ' keycode=' + e.keyCode);
             if (e.keyCode !== undefined) {
                 keyState[e.keyCode] = false;
             }
@@ -84,30 +85,147 @@
         this.KEYS = {LEFT: 37, RIGHT: 39, SPACE: 32};
     };
 
+    function getGesturePointFromEvent(evt) {
+        var point = {};
+
+        if (evt.targetTouches) {
+            // Prefer Touch Events
+            point.x = evt.targetTouches[0].clientX;
+            point.y = evt.targetTouches[0].clientY;
+        } else {
+            // Either Mouse event or Pointer Event
+            point.x = evt.clientX;
+            point.y = evt.clientY;
+        }
+
+        return point;
+    }
+
+    // adapted from:
+    // article: https://developers.google.com/web/fundamentals/design-and-ux/input/touch/#implement-custom-gestures
+    // live demo/source: https://googlesamples.github.io/web-fundamentals/fundamentals/design-and-ux/input/touch/touch-demo-1.html
+    var TouchAndMouser = function (player) {
+        var rafPending = false;
+        var initialTouchPos = null;
+        var lastTouchPos = null;
+
+        function onAnimFrame() {
+            if (!rafPending) {
+                return;
+            }
+
+            var differenceInX = initialTouchPos.x - lastTouchPos.x;
+
+            player.center.x -= differenceInX;
+            if (player.center.x < 0 + player.size.x / 2) {
+                player.center.x = player.size.x / 2;
+            } else {
+                if (player.center.x > player.gameSize.x - player.size.x / 2) {
+                    player.center.x = player.gameSize.x - player.size.x / 2;
+                }
+            }
+
+            rafPending = false;
+        }
+
+        this.handleMove = function (evt) {
+            evt.preventDefault();
+
+            if (!initialTouchPos) {
+                return;
+            }
+
+            lastTouchPos = getGesturePointFromEvent(evt);
+
+            if (rafPending) {
+                return;
+            }
+
+            rafPending = true;
+
+            requestAnimationFrame(onAnimFrame);
+        };
+
+        this.handleEnd = function (evt) {
+            evt.preventDefault();
+
+            if (evt.touches && evt.touches.length > 0) {
+                return;
+            }
+
+            lastTouchPos = getGesturePointFromEvent(evt);
+
+            rafPending = false;
+
+            // Remove Event Listeners
+            if (window.PointerEvent) {
+                evt.target.releasePointerCapture(evt.pointerId);
+            } else {
+                // Remove Mouse Listeners
+                document.removeEventListener('mousemove', this.handleMove, true);
+                document.removeEventListener('mouseup', this.handleEnd, true);
+            }
+
+            // tap or click with no horizontal movement should fire a bullet
+            if (initialTouchPos.x === lastTouchPos.x) {
+                player.fire();
+            }
+
+            initialTouchPos = null;
+        };
+
+        this.handleStart = function (evt) {
+            evt.preventDefault();
+
+            if (evt.touches && evt.touches.length > 1) {
+                return;
+            }
+            if (window.PointerEvent) {
+                evt.target.setPointerCapture(evt.pointerId);
+            } else {
+                // add moutse listeners
+                document.addEventListener("mousemove", this.handleMove, true);
+                document.addEventListener("mouseup", this.handleEnd, true);
+            }
+
+            initialTouchPos = getGesturePointFromEvent(evt);
+        };
+
+        this.handleCancel = function (evt) {
+            evt.preventDefault();
+        };
+
+        if (window.PointerEvent) {
+            document.addEventListener("pointerdown", this.handleStart, true);
+            document.addEventListener("pointerup", this.handleEnd, true);
+            document.addEventListener("pointercancel", this.handleCancel, true);
+            document.addEventListener("pointermove", this.handleMove, true);
+        } else {
+            document.addEventListener("touchstart", this.handleStart, true);
+            document.addEventListener("touchend", this.handleEnd, true);
+            document.addEventListener("touchcancel", this.handleCancel, true);
+            document.addEventListener("touchmove", this.handleMove, true);
+
+            document.addEventListener("mousedown", this.handleStart, true);
+        }
+    };
+
     var Player = function (game, gameSize) {
         this.game = game;
+        this.gameSize = gameSize;
+        this.active = true;
         this.size = {x: 15, y: 15};
         this.center = {x: gameSize.x / 2, y: gameSize.y - this.size.x};
         this.keyboarder = new Keyboarder();
+        this.touchAndMouser = new TouchAndMouser(this);
     };
 
     Player.prototype = {
-        update: function (gameSize) {
+        fire: function () {
             var playPromise;
             var skipLoadNextTime = false;
-            if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
-                this.center.x -= 2;
-                if (this.center.x < 0 + this.size.x / 2) {
-                    this.center.x = this.size.x / 2;
-                }
-            } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
-                this.center.x += 2;
-                if (this.center.x > gameSize.x - this.size.x / 2) {
-                    this.center.x = gameSize.x - this.size.x / 2;
-                }
-            }
-            if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
-                var bullet = new Bullet({x: this.center.x, y: this.center.y - this.size.x / 2}, {x: 0, y: -6});
+            var bullet = new Bullet({x: this.center.x, y: this.center.y - 15 - this.size.x / 2}, {x: 0, y: -6});
+            if (this.active) {
                 this.game.addBody(bullet);
                 if (!skipLoadNextTime) {
                     this.game.shootSound.load();
@@ -123,6 +241,22 @@
                             skipLoadNextTime = true;
                         });
                 }
+            }
+        },
+        update: function () {
+            if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
+                this.center.x -= 2;
+                if (this.center.x < 0 + this.size.x / 2) {
+                    this.center.x = this.size.x / 2;
+                }
+            } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
+                this.center.x += 2;
+                if (this.center.x > this.gameSize.x - this.size.x / 2) {
+                    this.center.x = this.gameSize.x - this.size.x / 2;
+                }
+            }
+            if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
+                this.fire();
             }
         }
     };
@@ -144,6 +278,7 @@
     var Game = function (canvasId) {
         var canvas = document.getElementById(canvasId);
         this.screen = canvas.getContext('2d');
+        this.screen.fillStyle = "#FFFFFF";
         this.gameSize = {x: canvas.width, y: canvas.height};
         this.bodies = createInvaders(this).concat(new Player(this, this.gameSize));
     };
@@ -154,12 +289,17 @@
             var i;
             var notCollingWithAnything = function (b1) {
                 return bodies.filter(function (b2) {
-                    return colliding(b1, b2);
+                    var collisionDetected = colliding(b1, b2);
+                    if (collisionDetected) {
+                        b1.active = false;
+                        b2.active = false;
+                    }
+                    return collisionDetected;
                 }).length === 0;
             };
             this.bodies = this.bodies.filter(notCollingWithAnything);
             for (i = 0; i < this.bodies.length; i += 1) {
-                this.bodies[i].update(this.gameSize);
+                this.bodies[i].update();
             }
         },
         draw: function () {
@@ -195,7 +335,7 @@
     window.onload = function () {
         var myGame = new Game('screen');
         // laser sound from http://www.findsounds.com/ISAPI/search.dll?keywords=laser
-        loadSound("shoot.wav", function (theShootSound) {
+        loadSound("https://cdn.glitch.com/d7cd53b1-e67a-4583-a50a-ab66b048c323%2Fshoot.wav?1534647115994", function (theShootSound) {
             myGame.shootSound = theShootSound;
             (function tick() {
                 myGame.update();

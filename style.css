@@ -1,0 +1,13 @@
+/* CSS files add styling rules to your content */
+
+body {
+    font-family: "Georgia", "Helvetica Neue", helvetica, arial, sans-serif;
+    margin: 2em;
+    background-color: darkgray;
+  }
+  
+  canvas {
+    background-color: black; 
+    touch-action: none;
+  }
+  
