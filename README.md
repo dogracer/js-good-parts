@@ -18,10 +18,10 @@ Find out more [about Mary Rose Cook](https://maryrosecook.com/).
 
 This document lists supported modules. If you need support for a new c-Series module, or if you find an issue with the support for a specific module, please create an issue and consider committing the necessary changes and submitting a pull request. 
 
-## Scan Engine Custom Device | Analog Input Module Support Recently Added
-| Model | Description | Channels | Measurement Type | Units | Version Supported |
+## Scan Engine Custom Device's New AI Modules
+| Model | Description | Channels | Measurement Type | Units | Supported |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| NI 9210 | Thermocouple Input | 4 | Temperature or Voltage | Custom | >= VeriStand 2018 |
-| NI 9216 | RTD Input | 8 | Temperature or Resistance | Custom | >= VeriStand 2017 |
-| NI 9226 | RTD Input | 8 | Temperature or Resistance | Custom | >= VeriStand 2017 |
-| NI 9253 | Analog Input | 8 | Current | A | >= VeriStand 2019 |
+| NI 9210 | Thermocouple | 4 | Temp or Voltage | Custom | >= VeriStand 2018 |
+| NI 9216 | RTD | 8 | Temp or Resistance | Custom | >= VeriStand 2017 |
+| NI 9226 | RTD | 8 | Temp or Resistance | Custom | >= VeriStand 2017 |
+| NI 9253 | Analog | 8 | Current | A | >= VeriStand 2019 |
