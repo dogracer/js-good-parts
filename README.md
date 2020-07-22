@@ -18,7 +18,7 @@ Find out more [about Mary Rose Cook](https://maryrosecook.com/).
 
 This document lists supported modules. If you need support for a new c-Series module, or if you find an issue with the support for a specific module, please create an issue and consider committing the necessary changes and submitting a pull request. 
 
-## Newly Supported Analog Input Modules in Scan Engine CD
+## Analog Input Module Support Recently Added to the Scan Engine Custom Device
 | Model | Description | Channels | Measurement Type | Units | Version Supported |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | NI 9210 | Thermocouple Input | 4 | Temperature or Voltage | Custom | >= VeriStand 2018 |
