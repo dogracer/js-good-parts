@@ -20,7 +20,7 @@ This document lists supported modules. If you need support for a new c-Series mo
 
 ## Analog Input
 | Model | ADC Resolution | Description | Channels | Measurement Type | Units | Version Supported |
-|:---:|:---:|---|:---:|:---:|:---:|
+|:---:|:---:|---|:---:|:---:|:---:|:---:|
 | NI 9210 | 24-Bit | Thermocouple Input | 4 | Temperature or Voltage | Custom | >= VeriStand 2018 |
 | NI 9216 | 24-Bit | RTD Input | 8 | Temperature or Resistance | Custom | >= VeriStand 2017 |
 | NI 9226 | 24-Bit | RTD Input | 8 | Temperature or Resistance | Custom | >= VeriStand 2017 |
